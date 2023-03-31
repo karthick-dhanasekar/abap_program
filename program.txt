@@ -1,0 +1,235 @@
+ REPORT ZOOABAP_TASK.
+
+  TYPES: BEGIN OF TY_KNA1,
+          MANDT TYPE KNA1-MANDT,
+          KUNNR TYPE KNA1-KUNNR,
+          ORT01 TYPE KNA1-ORT01,
+          ERDAT TYPE KNA1-ERDAT,
+         END OF TY_KNA1,
+
+         BEGIN OF TY_LFA1,
+           MANDT TYPE LFA1-MANDT,
+           LIFNR TYPE LFA1-LIFNR,
+           ORT01 TYPE LFA1-ORT01,
+           ERDAT TYPE LFA1-ERDAT,
+         END OF TY_LFA1.
+
+  types : begin of tp_heading,
+          heading(30),
+        end of tp_heading.
+
+
+  data : lr_excel_structure      type ref to data,
+*       lo_source_table_descr   type ref to cl_abap_tabledescr,
+*       lo_table_row_descriptor type ref to cl_abap_structdescr,
+*       lv_content              type xstring,
+*       lt_binary_tab           type table of sdokcntasc,
+*       lv_length               type i,
+*       lv_filename1 type string,
+*         lv_path     type string,
+*         lv_fullpath type string,
+         gt_heading type STANDARD TABLE OF tp_heading,
+         gt_heading1 type STANDARD TABLE OF tp_heading,
+         gs_heading type tp_heading,
+         gs_heading1 type tp_heading,
+         GV_DATE TYPE KNA1-ERDAT.
+
+*  data(lo_tool_xls) = cl_salv_export_tool_ats_xls=>create_for_excel(
+*                            exporting r_data =  lr_excel_structure  ) .
+
+*SELECT-OPTIONS: S_DATE FOR GV_DATE.
+  PARAMETERS: P_DATE TYPE D.
+    DATA: LT_CUSTOMERS TYPE TABLE OF TY_KNA1,
+          LS_CUSTOMERS TYPE  TY_KNA1,
+          LT_VENDORS   TYPE  TABLE OF TY_LFA1,
+          LS_VENDORS   TYPE   TY_LFA1,
+          LT_header TYPE  TABLE OF TY_kna1,
+          LS_header TYPE   TY_kna1,
+          LT_HEADER1 TYPE  TABLE OF TY_LFA1,
+          LS_header1 TYPE TY_lfa1,
+            ITAB1        TYPE  TRUXS_T_TEXT_DATA,
+            ITAB2        TYPE TRUXS_T_TEXT_DATA.
+*            ITAB3        TYPE STANDARD TABLE OF KNA1,
+*            ITAB4        TYPE STANDARD TABLE OF LFA1.
+
+  CLASS LCL_CUSTOMER_VENDOR DEFINITION.
+    PUBLIC SECTION.
+      METHODS: CONSTRUCTOR, GENERATE_CUSTOMER_CSV, GENERATE_VENDOR_CSV.
+*    PRIVATE SECTION.
+*      DATA: LT_CUSTOMERS TYPE STANDARD TABLE OF KNA1,
+*            LT_VENDORS   TYPE STANDARD TABLE OF LFA1,
+*            ITAB1        TYPE  TRUXS_T_TEXT_DATA,
+*            ITAB2        TYPE TRUXS_T_TEXT_DATA.
+  ENDCLASS.
+  CLASS LCL_CUSTOMER_VENDOR IMPLEMENTATION.
+
+    METHOD CONSTRUCTOR.
+      SELECT MANDT, kunnr, ort01, ERDAT  FROM KNA1 INTO TABLE @LT_CUSTOMERS WHERE ERDAT = @P_DATE.
+      SELECT  MANDT, LIFNR, ORT01, ERDAT FROM LFA1 INTO TABLE @LT_VENDORS WHERE ERDAT = @P_DATE.
+    ENDMETHOD.
+
+    METHOD GENERATE_CUSTOMER_CSV.
+*      data(lo_tool_xls) = cl_salv_export_tool_ats_xls=>create_for_excel(
+*                            exporting r_data =  lr_excel_structure  ) .
+*              DATA(LV_FILE) = 'customer.csv'.
+
+      CALL FUNCTION 'SAP_CONVERT_TO_CSV_FORMAT'
+        EXPORTING
+          I_FIELD_SEPERATOR    = ';'
+*         I_LINE_HEADER        =
+*         I_FILENAME           = ''
+*         I_APPL_KEEP          = ' '
+        TABLES
+          I_TAB_SAP_DATA       = LT_CUSTOMERS
+        CHANGING
+          I_TAB_CONVERTED_DATA = ITAB1
+        EXCEPTIONS
+          CONVERSION_FAILED    = 1
+          OTHERS               = 2.
+
+
+      clear : GT_HEADING[], gs_heading.
+
+ GS_HEADING-HEADING = 'Client'.
+ append gs_heading to gt_heading.
+ clear : gs_heading.
+
+ GS_HEADING-HEADING = 'Cus.No'.
+ append gs_heading to gt_heading.
+ clear : gs_heading.
+
+ GS_HEADING-HEADING = 'City'.
+ append gs_heading to gt_heading.
+ clear : gs_heading.
+
+ GS_HEADING-HEADING = 'Created On'.
+ append gs_heading to gt_heading.
+ clear : gs_heading.
+*"""""""""""""""""""''
+*       data(lo_config) = lo_tool_xls->configuration( ).
+*
+*  lo_config->add_column(
+*      exporting
+*        header_text          =  'Client'
+*        field_name           =  'MANDT'
+*        display_type         =   if_salv_bs_model_column=>uie_text_view ).
+*
+*  lo_config->add_column(
+*      exporting
+*        header_text          =  'Customer ID'
+*        field_name           =  'KUNNR'
+*        display_type         =   if_salv_bs_model_column=>uie_text_view ).
+*
+*  lo_config->add_column(
+*       exporting
+*         header_text          =  'City'
+*         field_name           =  'ORT01'
+*         display_type         =   if_salv_bs_model_column=>uie_text_view ).
+*
+*
+*  lo_config->add_column(
+*        exporting
+*          header_text          =  'Created On'
+*          field_name           =  'erdat'
+*          display_type         =   if_salv_bs_model_column=>uie_text_view ).
+*
+*
+*
+*      """"""""""""""""""""""
+
+      CALL FUNCTION 'GUI_DOWNLOAD'
+        EXPORTING
+          FILENAME              = 'C:\Users\Shamshira\OneDrive - mobolutions.com\Desktop\New folder\Customer1.csv' "'D:\LV_FILE'
+          FILETYPE              = 'DBF'
+*          WRITE_FIELD_SEPARATOR = ';'
+
+        TABLES
+          DATA_TAB              = LT_CUSTOMERS"ITAB1.   "ITAB1.
+          FIELDNAMES            = GT_headING.
+
+
+    ENDMETHOD.
+
+
+
+
+    METHOD GENERATE_VENDOR_CSV.
+*                DATA(LV_FILE1) = 'vendor.csv'.
+
+      CALL FUNCTION 'SAP_CONVERT_TO_CSV_FORMAT'
+        EXPORTING
+          I_FIELD_SEPERATOR    = ';'
+*         I_LINE_HEADER        =
+*         I_FILENAME           = ''
+*         I_APPL_KEEP          = ' '
+        TABLES
+          I_TAB_SAP_DATA       = LT_VENDORS
+        CHANGING
+          I_TAB_CONVERTED_DATA = ITAB2
+        EXCEPTIONS
+          CONVERSION_FAILED    = 1
+          OTHERS               = 2.
+
+      GS_HEADING1-HEADING = 'Client'.
+ append gs_heading1 to gt_heading1.
+ clear : gs_heading1.
+
+ GS_HEADING1-HEADING = 'Ven.No'.
+ append gs_heading1 to gt_heading1.
+ clear : gs_heading1.
+
+ GS_HEADING1-HEADING = 'City'.
+ append gs_heading1 to gt_heading1.
+ clear : gs_heading1.
+
+ GS_HEADING1-HEADING = 'Created On'.
+ append gs_heading1 to gt_heading1.
+ clear : gs_heading1.
+*"""""""""""""""""""''
+*       data(lo_config) = lo_tool_xls->configuration( ).
+*
+*  lo_config->add_column(
+*      exporting
+*        header_text          =  'Client'
+*        field_name           =  'MANDT'
+*        display_type         =   if_salv_bs_model_column=>uie_text_view ).
+*
+*  lo_config->add_column(
+*      exporting
+*        header_text          =  'Customer ID'
+*        field_name           =  'LIFNR'
+*        display_type         =   if_salv_bs_model_column=>uie_text_view ).
+*
+*  lo_config->add_column(
+*       exporting
+*         header_text          =  'City'
+*         field_name           =  'ORT01'
+*         display_type         =   if_salv_bs_model_column=>uie_text_view ).
+*
+*
+*  lo_config->add_column(
+*        exporting
+*          header_text          =  'Created On'
+*          field_name           =  'erdat'
+*          display_type         =   if_salv_bs_model_column=>uie_text_view ).
+*
+*
+*
+*      """"""""""""""""""""""
+
+      CALL FUNCTION 'GUI_DOWNLOAD'
+        EXPORTING
+          FILENAME              = 'C:\Users\Shamshira\OneDrive - mobolutions.com\Desktop\New folder\Vendor1.csv' "'D:\LV_FILE1'
+          FILETYPE              = 'DBF'
+          WRITE_FIELD_SEPARATOR = ';'
+
+        TABLES
+          DATA_TAB              = LT_VENDORS
+          FIELDNAMES            = GT_HEADING1.
+    ENDMETHOD.
+  ENDCLASS.
+
+  START-OF-SELECTION.
+    DATA(LO_CUSTOMER_VENDOR) = NEW LCL_CUSTOMER_VENDOR( ).
+    LO_CUSTOMER_VENDOR->GENERATE_CUSTOMER_CSV( ).
+    LO_CUSTOMER_VENDOR->GENERATE_VENDOR_CSV( ).
